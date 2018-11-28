@@ -24,6 +24,10 @@
     <img src="https://travis-ci.org/src-d/lookout-sdk.svg?branch=master"
          alt="Build Status">
   </a>
+  <a href="https://godoc.org/gopkg.in/src-d/lookout-sdk.v0/pb">
+    <img src="https://godoc.org/gopkg.in/src-d/lookout-sdk.v0?status.svg"
+         alt="GoDoc">
+  </a>
   <a href="https://docs.google.com/document/d/1pqz-_SHO5BsJE-aa8o_bAY3r5vR67amnWN8-qZc2UgY">
     <img src="https://img.shields.io/badge/source%7Bd%7D-design%20document-blue.svg"
          alt="source{d} design document">
@@ -38,55 +42,65 @@
     <a href="https://twitter.com/sourcedtech">Twitter</a>
 </b></p>
 
-
-**lookout-sdk** provides an easy access to the DataService API though a gRPC service to lookout analyzers.
-
-DataService abstracts all data access and details of dealing with actual Git repositories, UAST extraction, programming language detection, etc.
-This way the analyzer can focus focus only on source code analysis logic.
-
-_For detailed information about the different parts of Lookout, and how they interact you can go to the [lookout architecture guide](https://github.com/src-d/lookout/blob/master/docs/architecture.md)._
-
-_For the complete documentation of **source{d} Lookout**, please take a look into [http://docs.sourced.tech/lookout](http://docs.sourced.tech/lookout)._
-
-
 # Table of Contents
 
 <!--ts-->
    * [Table of Contents](#table-of-contents)
    * [What does the SDK provide?](#what-does-the-sdk-provide)
    * [Caveats](#caveats)
+         * [DataService](#dataservice)
    * [Contributing](#contributing)
       * [Community](#community)
    * [Code of Conduct](#code-of-conduct)
    * [License](#license)
 
-<!-- Added by: david, at: 2018-11-19T13:38+01:00 -->
+<!-- Added by: david, at: 2018-12-04T20:18+01:00 -->
 
 <!--te-->
 
 
 # What does the SDK provide?
 
-- proto [definitions](./proto)
-- pre-generated libraries code for [Golang](./pb) and [Python](./python)
-  - low-level helpers to workaround protobuf/gRPC caveats. Check [go documentation](https://godoc.org/gopkg.in/src-d/lookout-sdk.v0/pb)
-- quickstart [examples](./examples) of an Analyzer that detects language and number of functions (written in Go and in Python).
+_For the complete documentation of **source{d} Lookout**, please take a look into [http://docs.sourced.tech/lookout](http://docs.sourced.tech/lookout)._
 
+_For detailed information about the different parts of Lookout, and how they interact you can go to the [lookout architecture guide](https://github.com/src-d/lookout/blob/master/docs/architecture.md)._
+
+**lookout-sdk** provides:
+
+- **proto [definitions](./proto)**,
+- pre-generated libraries code for [Golang](./pb) and [Python](./python):
+  - an easy **access to the DataService API though a gRPC** service to lookout analyzers, so they won't need to deal with actual Git repositories, UAST extraction, programming language detection, etc,
+  - low-level **helpers to workaround some protobuf/gRPC caveats**,
+- quickstart [examples](./examples) of an Analyzer that detects language and number of functions (written in Go and in Python).
 
 
 # Caveats
 
-- client: disable secure connection on dialing with `grpc.WithInsecure()`
-- client/server: set [max gRPC message size](https://github.com/grpc/grpc/issues/7927):
-  - go: use `pb.NewServer` and `pb.DialContext` instead.
-- client: turn off [gRPC fail-fast](https://github.com/grpc/grpc/blob/master/doc/wait-for-ready.md) mode. If your analyzer greedy creates a connection to DataServer before one was actually started, you might want to disable fail-fast mode. This way the RPCs are queued until the chanel ready. Here is an [example](https://github.com/src-d/lookout-gometalint-analyzer/blob/7b4b37fb3109299516fbb43017934d131784f49f/cmd/gometalint-analyzer/main.go#L66).
-- go client/server: use `pb.ToGoGrpcAddress` and `pb.Listen` to support [RFC 3986 URI scheme](https://github.com/grpc/grpc-go/issues/1911)
+When the gRPC client and servers are being used, it is needed:
+- to set [max gRPC message size](https://github.com/grpc/grpc/issues/7927); using lookout-sdk helpers it can be done:
+  - go: using `pb.NewServer` and `pb.DialContext`,
+  - python: using `lookout.sdk.grpc.create_channel`,
+- to support [RFC 3986 URI scheme](https://github.com/grpc/grpc-go/issues/1911); using lookout-sdk helpers it can be done:
+  - go: using `pb.ToGoGrpcAddress` and `pb.Listen`,
+  - python: using `lookout.sdk.grpc.to_grpc_address`.
+
+### DataService
+
+When DataService is being dialed, you should:
+
+- disable secure connection:
+  - go: using `grpc.WithInsecure()` ([example](https://github.com/src-d/lookout-gometalint-analyzer/blob/7b4b37fb3109299516fbb43017934d131784f49f/cmd/gometalint-analyzer/main.go#L65)),
+  - python: using `server.add_insecure_port(address)` ([example](https://github.com/src-d/lookout-sdk/blob/master/examples/language-analyzer.py#L63)),
+- turn off [gRPC fail-fast](https://github.com/grpc/grpc/blob/master/doc/wait-for-ready.md) mode if your analyzer creates a connection to DataServer before it was actually started. This way the RPCs are queued until the chanel is ready:
+  - go: using `grpc.FailFast(false)`
+([example](https://github.com/src-d/lookout-gometalint-analyzer/blob/7b4b37fb3109299516fbb43017934d131784f49f/cmd/gometalint-analyzer/main.go#L66)).
+
 
 # Contributing
 
 Contributions are **welcome and very much appreciated** 🙌
 
-Please refer [to our Contribution Guide](CONTRIBUTING.md) for more details.
+Please refer [to our Contribution Guide](docs/CONTRIBUTING.md) for more details.
 
 
 ## Community
@@ -105,4 +119,4 @@ All activities under source{d} projects are governed by the [source{d} code of c
 
 # License
 
-Apache License Version 2.0, see [LICENSE](LICENSE)
+Apache License Version 2.0, see [LICENSE](LICENSE.md)
